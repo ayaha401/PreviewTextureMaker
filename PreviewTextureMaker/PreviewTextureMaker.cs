@@ -22,7 +22,6 @@ public static class PreviewTextureMaker
 
         if (material != null)
         {
-            Debug.Log("Selected Material: " + material.name);
             MaterialPreviewWindow.ShowWindow(material);
         }
     }

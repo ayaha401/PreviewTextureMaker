@@ -35,7 +35,27 @@ public class MaterialPreviewWindow : EditorWindow
             float y = (windowHeight - textureHeight) / 2;
 
 
-            EditorGUI.DrawPreviewTexture(new Rect(x, y, textureWidth, textureHeight), Texture2D.whiteTexture, material);
+            EditorGUI.DrawPreviewTexture(new Rect(0, 0, textureWidth, textureHeight), Texture2D.whiteTexture, material);
+
+            // ボタンを描画（例：テクスチャの下にボタンを配置）
+            if (y + textureHeight < windowHeight)
+            {
+                // テクスチャの下に空きスペースがある場合
+                if (GUI.Button(new Rect(x, y + textureHeight, textureWidth, 30), "Below Button"))
+                {
+                    Debug.Log("Below Button clicked");
+                }
+            }
+            else if (x + textureWidth < windowWidth)
+            {
+                // テクスチャの右に空きスペースがある場合
+                if (GUI.Button(new Rect(x + textureWidth, y, 100, textureHeight), "Side Button"))
+                {
+                    Debug.Log("Side Button clicked");
+                }
+            }
+
+
 
             if (GUI.Button(new Rect(0, 0, 100, 20), "生成"))
             {
