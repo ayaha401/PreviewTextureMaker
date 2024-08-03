@@ -73,6 +73,9 @@ public class MaterialPreviewWindow : EditorWindow
     /// <param name="height">生成するテクスチャのサイズ</param>
     private Texture2D GetPreviewTexture(Material material, int width, int height)
     {
+        width = Mathf.Max(width, 2);
+        height = Mathf.Max(height, 2);
+
         // RenderTextureの作成
         RenderTexture renderTexture = RenderTexture.GetTemporary(width, height);
 
@@ -109,7 +112,7 @@ public class MaterialPreviewWindow : EditorWindow
         if (sizeKind == GenerateSizeKinds.Custom)
         {
             textureSize = EditorGUILayout.Vector2IntField("カスタムサイズ", textureSize);
-            textureSize = Vector2Int.Max(textureSize, Vector2Int.zero);
+            textureSize = Vector2Int.Max(textureSize, new Vector2Int(2, 2));
         }
         else
         {
