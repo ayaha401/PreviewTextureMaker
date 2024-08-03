@@ -6,96 +6,76 @@ using System.IO;
 
 public class MaterialPreviewWindow : EditorWindow
 {
-    private Material material;
+    /// <summary>
+    /// 生成するテクスチャのサイズ設定
+    /// </summary>
+    private enum GenerateSizeKinds
+    {
+        Half = 512,
+        Normal = 1024,
+        Large = 2048,
+        Custom = -1,
+    }
+
+    private Material _material;
+    private GenerateSizeKinds sizeKind = GenerateSizeKinds.Normal;
+    private Vector2Int textureSize = new Vector2Int(1024, 1024);
+    private MaterialEditor materialEditor;
+    private Vector2 scrollPosition;
 
     public static void ShowWindow(Material material)
     {
         MaterialPreviewWindow window = (MaterialPreviewWindow)EditorWindow.GetWindow(typeof(MaterialPreviewWindow));
-        window.titleContent = new GUIContent("Material Preview");
-        window.material = material;
+        window.titleContent = new GUIContent("テクスチャ生成");
+        window._material = material;
         window.Show();
     }
 
     void OnGUI()
     {
-        if (material != null)
+        if (_material != null)
         {
-            Rect windowRect = position;
-            float windowWidth = windowRect.width;
-            float windowHeight = windowRect.height;
-
-            // 短いほうの辺を取得する
-            float getShorter = Mathf.Min(windowWidth, windowHeight);
-
-            float textureWidth = getShorter;
-            float textureHeight = getShorter;
-
-            // テクスチャの表示位置を計算
-            float x = (windowWidth - textureWidth) / 2;
-            float y = (windowHeight - textureHeight) / 2;
-
-
-            EditorGUI.DrawPreviewTexture(new Rect(0, 0, textureWidth, textureHeight), Texture2D.whiteTexture, material);
-
-            // ボタンを描画（例：テクスチャの下にボタンを配置）
-            if (y + textureHeight < windowHeight)
+            Texture2D previewTexture = GetPreviewTexture(_material, textureSize.x, textureSize.y);
+            if (previewTexture != null)
             {
-                // テクスチャの下に空きスペースがある場合
-                if (GUI.Button(new Rect(x, y + textureHeight, textureWidth, 30), "Below Button"))
+                using (new GUILayout.VerticalScope())
                 {
-                    Debug.Log("Below Button clicked");
-                }
-            }
-            else if (x + textureWidth < windowWidth)
-            {
-                // テクスチャの右に空きスペースがある場合
-                if (GUI.Button(new Rect(x + textureWidth, y, 100, textureHeight), "Side Button"))
-                {
-                    Debug.Log("Side Button clicked");
-                }
-            }
+                    PreviewTexture(previewTexture);
 
-
-
-            if (GUI.Button(new Rect(0, 0, 100, 20), "生成"))
-            {
-                Texture2D previewTexture = GetPreviewTexture(material, 256, 256);
-                if (previewTexture != null)
-                {
-                    var path = EditorUtility.SaveFilePanel("名前を付けて保存", "", "Texture", "png");
-                    if (string.IsNullOrEmpty(path))
+                    using (new GUILayout.VerticalScope())
                     {
-                        // ユーザーがキャンセルした場合
-                        return;
-                    }
+                        DrawGenerateTextureSize();
+                        if (GUILayout.Button("保存"))
+                        {
+                            DrawSaveTexture(previewTexture);
+                        }
 
-                    // テクスチャデータをPNGにエンコード
-                    byte[] pngData = previewTexture.EncodeToPNG();
-
-                    if (pngData != null)
-                    {
-                        File.WriteAllBytes(path, pngData);
-                        Debug.Log("Texture saved to: " + path);
-                    }
-                    else
-                    {
-                        Debug.LogError("Failed to encode texture to PNG.");
+                        DrawMaterialInspecter();
                     }
                 }
             }
-
-
+            else
+            {
+                EditorGUILayout.LabelField("テクスチャのプレビューに失敗");
+            }
         }
         else
         {
-            EditorGUILayout.LabelField("No material selected.");
+            EditorGUILayout.LabelField("マテリアルが選択されていません");
         }
     }
 
-    Texture2D GetPreviewTexture(Material material, int width, int height)
+    /// <summary>
+    /// 選択したマテリアルからTextureプレビューのテクスチャを作成する
+    /// </summary>
+    /// <param name="material">選択したマテリアル</param>
+    /// <param name="width">生成するテクスチャのサイズ</param>
+    /// <param name="height">生成するテクスチャのサイズ</param>
+    private Texture2D GetPreviewTexture(Material material, int width, int height)
     {
         // RenderTextureの作成
         RenderTexture renderTexture = RenderTexture.GetTemporary(width, height);
+
         // 旧レンダリングターゲットの保存
         RenderTexture previous = RenderTexture.active;
         RenderTexture.active = renderTexture;
@@ -116,5 +96,96 @@ public class MaterialPreviewWindow : EditorWindow
         RenderTexture.ReleaseTemporary(renderTexture);
 
         return previewTexture;
+    }
+
+    /// <summary>
+    /// テクスチャの生成サイズ
+    /// </summary>
+    private void DrawGenerateTextureSize()
+    {
+        sizeKind = (GenerateSizeKinds)EditorGUILayout.EnumPopup("テクスチャサイズ", sizeKind);
+
+        // カスタムサイズを選択時は専用の入力エリアを出す
+        if (sizeKind == GenerateSizeKinds.Custom)
+        {
+            textureSize = EditorGUILayout.Vector2IntField("カスタムサイズ", textureSize);
+            textureSize = Vector2Int.Max(textureSize, Vector2Int.zero);
+        }
+        else
+        {
+            textureSize.x = (int)sizeKind;
+            textureSize.y = (int)sizeKind;
+        }
+    }
+
+    /// <summary>
+    /// テクスチャをプレビューで表示する
+    /// </summary>
+    /// <param name="texture">生成したテクスチャ</param>
+    private void PreviewTexture(Texture2D texture)
+    {
+        Rect windowRect = position;
+        float windowWidth = windowRect.width;
+        float windowHeight = windowRect.height;
+
+        // 短いほうの辺を取得する
+        float getShorter = Mathf.Min(windowWidth, windowHeight);
+
+        float textureWidth = getShorter;
+        float textureHeight = getShorter;
+        Rect textureRect = GUILayoutUtility.GetRect(300, 300, GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
+        // テクスチャを描画
+        GUI.DrawTexture(textureRect, texture);
+    }
+
+    /// <summary>
+    /// マテリアルのインスペクターを表示する
+    /// </summary>
+    private void DrawMaterialInspecter()
+    {
+        EditorGUI.BeginChangeCheck();
+        if (_material != null && EditorGUI.EndChangeCheck())
+        {
+            if (materialEditor != null) DestroyImmediate(materialEditor);
+        }
+
+        materialEditor = (MaterialEditor)Editor.CreateEditor(_material, typeof(MaterialEditor));
+        if (materialEditor != null)
+        {
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            using (new GUILayout.VerticalScope("Box"))
+            {
+                materialEditor.DrawHeader();
+                materialEditor.OnInspectorGUI();
+            }
+            EditorGUILayout.EndScrollView();
+        }
+    }
+
+    /// <summary>
+    /// テクスチャを保存する
+    /// </summary>
+    /// <param name="texture">生成したテクスチャ</param>
+    private void DrawSaveTexture(Texture2D texture)
+    {
+        var path = EditorUtility.SaveFilePanel("名前を付けて保存", "", "Texture", "png");
+        if (string.IsNullOrEmpty(path))
+        {
+            // ユーザーがキャンセルした場合
+            return;
+        }
+
+        // テクスチャデータをPNGにエンコード
+        byte[] pngData = texture.EncodeToPNG();
+
+        if (pngData != null)
+        {
+            File.WriteAllBytes(path, pngData);
+            Debug.Log("テクスチャを保存: " + path);
+        }
+        else
+        {
+            Debug.LogError("PNGへのエンコードに失敗");
+        }
     }
 }

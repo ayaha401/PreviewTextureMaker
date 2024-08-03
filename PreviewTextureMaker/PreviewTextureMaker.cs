@@ -18,11 +18,12 @@ public static class PreviewTextureMaker
     [MenuItem("Assets/Create/MaterialPreviewTexture", priority = 301)]
     private static void MaterialPreviewTexture()
     {
-        Material material = Selection.activeObject as Material;
+        Material originalMaterial = Selection.activeObject as Material;
 
-        if (material != null)
+        if (originalMaterial != null)
         {
-            MaterialPreviewWindow.ShowWindow(material);
+            Material materialInstance = new Material(originalMaterial);
+            MaterialPreviewWindow.ShowWindow(materialInstance);
         }
     }
 }
