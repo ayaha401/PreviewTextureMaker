@@ -28,4 +28,3 @@ https://github.com/user-attachments/assets/2a673ef7-8ef6-4c5f-8e5f-2b49144cf5bb
 
 # 不具合
 * _Timeを使用しているマテリアルだとプレビューの画像が常に変わってしまいます。
-* _MainTexを使用しているマテリアルのTextureが反映されない
