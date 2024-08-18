@@ -48,6 +48,7 @@ namespace AyahaGraphicDevelopTools.PreviewTextureMaker
                             if (GUILayout.Button("•Û‘¶"))
                             {
                                 DrawSaveTexture(previewTexture);
+                                AssetDatabase.Refresh();
                             }
 
                             DrawMaterialInspecter();
